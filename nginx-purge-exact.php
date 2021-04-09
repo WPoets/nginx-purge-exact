@@ -27,40 +27,24 @@ class wpoets_nginx_purge{
 		
 		echo '<div class="wrap" >'; 
 			echo '<h3>Purge Nginx Cache</h3>';
-			
+			if(isset($_GET['msg'])){
+
+				echo'<div class="notice notice-info"><p style="font-weight:700">'.htmlentities($_GET['msg']).'</p></div>';
+				
+			}
 			echo '
 			<div>
 			<form method="post" action="'.wp_nonce_url(admin_url('tools.php?page=nginx-exact-url-purge&nginx_exact_cache_purge=yes'), 'redis_nonced-purge').'" method="post">
 				<label for="nginx_url_to_purge" style="font-weight:bold">URL To Purge</label></br>
 				</br>
 				<input type="text" style="width:500px" id="nginx_url_to_purge" name="nginx_url_to_purge" />
-				<input type="submit" value="Purge Cache"/>
+				<input type="submit" class="button-secondary" value="Purge Cache"/>
 			 </form>
 			 </div>';
 			echo '</div>
 				';
 				
 			
-		echo '</div>';	
-		
-		echo '
-		<div class="clear"></div>
-		<div class="wrap" >';        	
-			echo '<h3>Services</h3>';			
-			//register services
-			$handlers=&aw2_library::get_array_ref('handlers');
-			ksort($handlers);			
-			echo "<ul class='inline'>";
-			foreach($handlers as $key => $handler){
-				if(isset($handler['post_type']) && isset($handler['@service']) && $handler['@service'] === true ){
-					if(!isset($handler['service_label'])) continue;
-				
-					echo "<li style='display:inline-block; width:33%;'>";
-						echo "<a href='edit.php?post_type=".$handler['post_type']."'>".$handler['service_label']."</a>";
-					echo "</li>";
-				}
-			}
-			echo "</ul>";
 		echo '</div>';		
 				
 	}
@@ -91,12 +75,14 @@ class wpoets_nginx_purge{
 				$cache_path = self::get_cache_hash_key($url);
 				$status = self::flush_cache($url);
 				if($status){
-					echo '<div class="wrap" >Cache for URL:  ' .$url. ' purged</div>';
+					$msg='Cache for URL:  ' .$url. ' purged';
+				}
+				else{
+					$msg='URL is not cached.';
 				}
 			}
-		
-			
-			//wp_redirect( esc_url_raw( add_query_arg( array( 'awesome_purge' =>'done' ) ) ) );
+
+			wp_redirect(get_admin_url(null,'tools.php?page=nginx-exact-url-purge'). '&msg='.$msg );
 	}
 	
 	static function get_cache_hash_key( $page_url ) {
