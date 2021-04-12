@@ -72,32 +72,46 @@ class wpoets_nginx_purge{
 
 			if ( $action == 'yes' ) {
 				$url = $_REQUEST['nginx_url_to_purge'];
-				$cache_path = self::get_cache_hash_key($url);
 				$status = self::flush_cache($url);
-				if($status){
-					$msg='Cache for URL:  ' .$url. ' purged';
-				}
-				else{
-					$msg='URL is not cached.';
-				}
+				
 			}
 
-			wp_redirect(get_admin_url(null,'tools.php?page=nginx-exact-url-purge'). '&msg='.$msg );
+			wp_redirect(get_admin_url(null,'tools.php?page=nginx-exact-url-purge'). '&msg='.$status );
 	}
-	
-	static function get_cache_hash_key( $page_url ) {
-		$url = wp_parse_url( $page_url );
-		$hash = md5( $url['scheme'] . 'GET' . $url['host'] . $url['path'] );
-		$path = trailingslashit( NGINX_CACHE_PATH );
-		return $path . substr( $hash, -1 ) . '/' . substr( $hash, -3, 2 ) . '/' . $hash;
-	}
-	
-	static function flush_cache( $path ) {
-        if ( file_exists( $path ) ) {
-            return unlink( $path );
-        }
+		
+	static function flush_cache( $page_url ) {
+   
+		$msg='x';
+		$path = wp_parse_url( $page_url );
+		
+		$url= $path['scheme']. '://' . $path['host'] . '/purge' . $path['path'];
+		//purge		
+		$response = wp_remote_get( $url );
 
-        return false;
-    } 
+		if ( is_wp_error( $response ) ) {
+
+			$_errors_str = implode( ' - ', $response->get_error_messages() );
+			$msg =  'Error while purging URL. ' . $_errors_str ;
+
+		} else {
+
+			if ( $response['response']['code'] ) {
+
+				switch ( $response['response']['code'] ) {
+
+					case 200:
+							$msg =   '- - ' . $url . ' *** PURGED ***' ;
+						break;
+					case 404:
+							$msg =   '- - ' . $url . ' is currently not cached' ;
+						break;
+					default:
+							$msg =   '- - ' . $url . ' not found ( ' . $response['response']['code'] . ' )' ;
+
+				}
+			}
+    }  /**/
 	
+	return $msg;
+	}
 }
